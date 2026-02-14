@@ -46,6 +46,11 @@ sf::Vector2f PhysicsComponent_t::get_position()
         (box_pos.y * PhysicsManager::pixels_per_meter) - half_height_);
 }
 
+sf::Vector2f PhysicsComponent_t::get_hitbox()
+{
+    return sf::Vector2f(half_width_ * 2.f, half_height_ * 2.f);
+}
+
 void PhysicsComponent_t::apply_force(const sf::Vector2f& force)
 {
 
@@ -71,17 +76,4 @@ void PhysicsComponent_t::move(const sf::Vector2f& dir, float run_speed, float ju
     }
 
     b2Body_SetLinearVelocity(body_id_, target_v);
-}
-
-void PhysicsComponent_t::decelerate(uint64_t time)
-{
-    /*auto v = b2Body_GetLinearVelocity(body_id_);
-    float mass = b2Body_GetMass(body_id_);
-    float impulse = mass * (0.f - v.x) * dt;
-    b2Body_ApplyLinearImpulseToCenter(body_id_, { impulse, 0.f }, true);*/
-    auto v = b2Body_GetLinearVelocity(body_id_);
-    v.x *= -0.5f;
-    v.y = 0.f;
-    b2Body_ApplyLinearImpulseToCenter(body_id_, v, true);
-    //b2Body_SetLinearVelocity(body_id_, v);
 }

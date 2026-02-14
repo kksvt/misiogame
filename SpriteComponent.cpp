@@ -5,8 +5,10 @@
 SpriteComponent_t::SpriteComponent_t(const std::string& texture_name, 
 	const sf::IntRect& frame_rectangle, 
 	const std::initializer_list<uint8_t>& num_frames, 
-	const std::initializer_list<uint8_t>& animation_speed) : 
-	current_row_(0), current_frame_(0), flipped_(false), last_animation_update_(0), frame_rectangle_(frame_rectangle)
+	const std::initializer_list<uint8_t>& animation_speed,
+	uint8_t drawing_priority) : 
+	current_row_(0), current_frame_(0), flipped_x_(false), flipped_y_(false),
+	last_animation_update_(0), frame_rectangle_(frame_rectangle), drawing_priority_(drawing_priority)
 {
 	if (!animation_speed.size()) {
 		std::cerr << "No animation speed provided for sprite " << texture_name << ", defaulting to 100\n";
@@ -39,12 +41,26 @@ SpriteComponent_t::SpriteComponent_t(const std::string& texture_name,
 
 void SpriteComponent_t::set_position(const sf::Vector2f& pos)
 {
-	if (flipped_) {
-		sprite_->setPosition({pos.x + frame_rectangle_.size.x, pos.y });
+	sf::Vector2f new_pos(pos);
+	if (flipped_x_) {
+		new_pos.x = pos.x + frame_rectangle_.size.x;
 	}
-	else {
-		sprite_->setPosition(pos);
+	if (flipped_y_) {
+		new_pos.y = pos.y + frame_rectangle_.size.x;
 	}
+
+	sprite_->setPosition(new_pos);
+}
+
+sf::Vector2f SpriteComponent_t::get_position() {
+	auto pos = sprite_->getPosition();
+	if (flipped_x_) {
+		pos.x -= frame_rectangle_.size.x;
+	}
+	if (flipped_y_){
+		pos.y -= frame_rectangle_.size.y;
+	}
+	return pos;
 }
 
 void SpriteComponent_t::update(uint64_t time)
@@ -72,15 +88,17 @@ void SpriteComponent_t::set_row(uint8_t row)
 
 void SpriteComponent_t::set_square(uint8_t square)
 {
-	current_frame_ = (current_frame_ + 1) % num_frames_[current_row_ % num_frames_.size()];
+	current_frame_ = square % num_frames_[current_row_ % num_frames_.size()];
 	frame_rectangle_.position.x = frame_rectangle_.size.x * current_frame_;
 	sprite_->setTextureRect(frame_rectangle_);
 }
 
-void SpriteComponent_t::set_flipped(bool flipped)
+void SpriteComponent_t::set_flipped(bool flipped_x, bool flipped_y)
 {
 	auto scale = sprite_->getScale();
-	scale.x = std::abs(scale.x) * (flipped ? -1.f : 1.f);
+	scale.x = std::abs(scale.x) * (flipped_x ? -1.f : 1.f);
+	scale.y = std::abs(scale.y) * (flipped_y ? -1.f : 1.f);
 	sprite_->setScale(scale);
-	flipped_ = flipped;
+	flipped_x_ = flipped_x;
+	flipped_y_ = flipped_y;
 }
