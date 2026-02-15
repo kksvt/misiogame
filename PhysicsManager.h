@@ -12,6 +12,7 @@ struct PhysicsManager {
     static void run(float dt);
     static void draw();
     static void destroy();
+    static void create_physical_entities_for_tiles();
 private:
     PhysicsManager();
     static int sub_step_count;

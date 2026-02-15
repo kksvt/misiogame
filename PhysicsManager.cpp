@@ -1,4 +1,7 @@
 #include "PhysicsManager.h"
+#include "SpriteComponent.h"
+#include "EntityManager.h"
+#include <iostream>
 
 float PhysicsManager::pixels_per_meter = 16.f;
 float PhysicsManager::meters_per_pixel = 1.0f / pixels_per_meter;
@@ -56,4 +59,65 @@ void PhysicsManager::draw()
 void PhysicsManager::destroy()
 {
 	b2DestroyWorld(world_id);
+}
+
+static sf::Vector2f VectorIntToFloat(const sf::Vector2i& v) {
+	return sf::Vector2f(static_cast<float>(v.x), static_cast<float>(v.y));
+}
+
+//not optimal, but its better than having each individual tile as a separate physics body
+void PhysicsManager::create_physical_entities_for_tiles()
+{
+	std::vector<SpriteComponent_t*> sprites;
+	sprites.reserve(EntityManager::get_num_allocated_entities());
+	const float cmp_eps = 0.05f;
+	for (uint32_t i = 0; i < EntityManager::get_num_allocated_entities(); ++i) {
+		Entity* ent = EntityManager::get_entity(i);
+		if (!ent || !ent->get_sprite() ||
+			!(ent->get_serializable_type() >= SET_TILE_FIRST && ent->get_serializable_type() <= SET_TILE_LAST)) {
+			continue;
+		}
+		sprites.push_back(ent->get_sprite());
+	}
+
+	std::sort(sprites.begin(), sprites.end(), [](SpriteComponent_t* a, SpriteComponent_t* b) {
+		auto pos_a = a->get_position();
+		auto pos_b = b->get_position();
+		if (pos_a.y < pos_b.y) {
+			return true;
+		}
+		if (pos_a.y == pos_b.y) {
+			return pos_a.x < pos_b.x;
+		}
+		return false;
+		});
+
+	for (auto& it : sprites) {
+		auto pos = it->get_position();
+		std::cout << "(" << pos.x << ", " << pos.y << ")\n";
+	}
+
+	for (uint32_t i = 0, j, k; i < sprites.size(); ++i) {
+		auto sprite = sprites[i];
+		auto start = sprite->get_position();
+		auto size = VectorIntToFloat(sprite->get_size());
+		auto end = sprite->get_position() + size;
+		for (j = i + 1; j < sprites.size(); ++j) {
+			auto new_sprite = sprites[j];
+			auto pos = new_sprite->get_position();
+			auto new_size = VectorIntToFloat(new_sprite->get_size());
+			if (std::abs(size.x - new_size.x) > cmp_eps ||
+				std::abs(size.y - new_size.y) > cmp_eps ||
+				std::abs(end.x - pos.x) > cmp_eps ||
+				std::abs(start.y - pos.y) > cmp_eps) {
+				break;
+			}
+			end.x += new_size.x;
+			i = j;
+		}
+
+		//std::cout << "Start of physics body: " << start.x << ", " << start.y << "\n";
+		//std::cout << "End of physics body: " << end.x << ", " << end.y << "\n";
+		EntityManager::create_physical_box(end.x - start.x, end.y - start.y, start.x, start.y);
+	}
 }

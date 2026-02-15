@@ -31,6 +31,16 @@ void Entity::set_process_callback(std::function<void(Entity*, uint64_t)> func)
 	process_callback_ = func;
 }
 
+sf::Vector2f Entity::get_position() {
+	if (physics_) {
+		return physics_->get_position();
+	}
+	if (sprite_) {
+		return sprite_->get_position();
+	}
+	return sf::Vector2f(0.f, 0.f);
+}
+
 Entity::~Entity()
 {
 	if (sprite_) {

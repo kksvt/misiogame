@@ -46,7 +46,7 @@ void SpriteComponent_t::set_position(const sf::Vector2f& pos)
 		new_pos.x = pos.x + frame_rectangle_.size.x;
 	}
 	if (flipped_y_) {
-		new_pos.y = pos.y + frame_rectangle_.size.x;
+		new_pos.y = pos.y + frame_rectangle_.size.y;
 	}
 
 	sprite_->setPosition(new_pos);

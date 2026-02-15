@@ -7,7 +7,7 @@
 
 class EntityManager {
 public:
-	static int create_empty_entity(const std::string& name, uint8_t type);
+	static int create_empty_entity(const std::string& name, uint8_t type, uint8_t set_type);
 	static Entity* create_player(const std::string& sprite_path, 
 		int sprite_width, int sprite_height,
 		bool enable_physics, float hitbox_width, float hitbox_height,
@@ -27,12 +27,18 @@ public:
 
 	static Entity* create_background(const std::string& sprite_path, int width, int height);
 
+	static Entity* create_physical_box(float hitbox_width, float hitbox_height, float pos_x, float pos_y);
+
+	static Entity* create_baddie_one(bool enable_physics, float pos_x, float pos_y);
+
 	static void update(uint64_t time);
 	static void queue_remove(int entity_num);
 	static Entity* get_entity(int entity_num);
 	static Entity* get_entity(float pos_x, float pos_y, int ignore);
 	static void remove_marked();
 	static void remove_all();
+	static uint32_t get_num_active_entities();
+	static uint32_t get_num_allocated_entities() { return all_entities_.size(); }
 	static void draw(sf::RenderWindow& window);
 private:
 	EntityManager();

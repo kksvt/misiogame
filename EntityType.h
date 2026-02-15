@@ -1,8 +1,25 @@
 #pragma once
+#include "GrassTiles.h"
 
 enum EntityType_t {
 	ET_NONE = 0,
 	ET_CHARACTER,
 	ET_TILE,
 	ET_SPRITE_ONLY,
+	ET_PHYSICS_ONLY,
+};
+
+enum SerializedEntityType_t {
+	SET_PLAYER = 0,
+	SET_ALIEN_PURPLE,
+	SET_ALIEN_BLUE,
+	SET_SPIKES,
+	SET_TILE_FIRST,
+	SET_TILE_LAST = SET_TILE_FIRST + GT_CORNER_BOTTOM_RIGHT,
+	SET_DOOR,
+	SET_KEY,
+	SET_MEDPAK,
+	SET_INFO,
+	SET_FOOD,
+	SET_MAX,
 };
