@@ -46,6 +46,14 @@ public:
 	uint8_t get_priority() const { return drawing_priority_; }
 
 	sf::Vector2i get_size() { return frame_rectangle_.size; }
+
+	size_t get_rows() { return num_frames_.size(); }
+
+	void set_animation_speed(const std::initializer_list<uint8_t>& animation_speed);
+
+	uint8_t get_animation_speed() { return animation_speed_[current_row_ % animation_speed_.size()]; };
+
+	uint8_t get_frame() { return current_frame_; }
 };
 
 using SpriteComponentPtr_t = std::unique_ptr<SpriteComponent_t>;

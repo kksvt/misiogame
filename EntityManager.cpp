@@ -1,195 +1,11 @@
 #include "EntityManager.h"
-#include <iostream>
-#include <SFML/Graphics.hpp>
 
 std::vector<EntityPtr_t> EntityManager::all_entities_;
 std::set<int> EntityManager::remove_entities_;
-
-int EntityManager::create_empty_entity(const std::string& name, uint8_t type, uint8_t set_type)
-{
-    int i;
-    for (i = 0; i < all_entities_.size(); ++i) {
-        if (!all_entities_[i]) {
-            break;
-        }
-    }
-    EntityPtr_t new_ent(new Entity(i, name, type, set_type));
-    if (i < all_entities_.size()) {
-        all_entities_[i] = std::move(new_ent);
-    }
-    else {
-        all_entities_.push_back(std::move(new_ent));
-    }
-    return i;
-}
-
-Entity* EntityManager::create_player(const std::string& sprite_path,
-    int sprite_width, int sprite_height,
-    bool enable_physics,
-    float hitbox_width, float hitbox_height, float pos_x, float pos_y,
-    const std::initializer_list<uint8_t>& num_frames,
-    const std::initializer_list<uint8_t>& animation_speed)
-{
-    int entity_num = create_empty_entity("player", EntityType_t::ET_CHARACTER, SerializedEntityType_t::SET_PLAYER);
-    Entity* player = all_entities_[entity_num].get();
-    //this is kinda hacky, but im running out of time
-    if (enable_physics) {
-        PhysicsComponentPtr_t physics(new PhysicsComponent_t(
-            PhysicsManager::world_id, player, true, hitbox_width, hitbox_height, pos_x, pos_y, 1.0f, 0.0f
-        ));
-        player->physics_ = std::move(physics);
-    }
-    SpriteComponentPtr_t sprite(new SpriteComponent_t(
-        sprite_path, sf::IntRect({ 0, 0 }, {sprite_width, sprite_height}), 
-        num_frames, animation_speed, 2));
-    sprite->set_position({ pos_x, pos_y });
-    player->sprite_ = std::move(sprite);
-
-    std::cout << "Player character created as entity number " << entity_num << '\n';
-
-    return player;
-}
-
-Entity* EntityManager::create_concrete_player(bool enable_physics, float pos_x, float pos_y)
-{
-    return EntityManager::create_player("misio.png", 20, 35, enable_physics, 20, 35, pos_x, pos_y, { 6, 6 }, { 100, 100 });
-}
-
-Entity* EntityManager::create_tile_unanimated(const std::string& sprite_path, int sprite_width, int sprite_height, float hitbox_width, float hitbox_height, float pos_x, float pos_y, uint8_t num_frames)
-{
-    int entity_num = create_empty_entity("tile", EntityType_t::ET_SPRITE_ONLY, SerializedEntityType_t::SET_TILE_FIRST);
-    Entity* tile = all_entities_[entity_num].get();
-    //we actually cannot let every single individual tile be a separate physics object
-    /*
-    PhysicsComponentPtr_t physics(new PhysicsComponent_t(
-        PhysicsManager::world_id, tile, false, hitbox_width, hitbox_height, pos_x, pos_y
-    ));
-    tile->physics_ = std::move(physics);
-    }*/
-    SpriteComponentPtr_t sprite(new SpriteComponent_t(
-        sprite_path, sf::IntRect({ 0, 0 }, { sprite_width, sprite_height }),
-        { num_frames }, {0}, 1));
-    tile->sprite_ = std::move(sprite);
-
-    std::cout << "Tile created as entity number " << entity_num << '\n';
-
-    return tile;
-}
-
-Entity* EntityManager::create_grass_tile(uint8_t grass_tile_type, float pos_x, float pos_y)
-{
-    Entity* tile = create_tile_unanimated("grass.png", 32, 32, 32, 32, pos_x, pos_y, 7);
-    auto sprite = tile->get_sprite();
-    switch (grass_tile_type) {
-    case GT_DIRT:
-        sprite->set_square(2);
-        break;
-    case GT_SINGLE_ROW_LEFT:
-        sprite->set_square(3);
-        break;
-    case GT_SINGLE_ROW_MIDDLE:
-        sprite->set_square(4);
-        break;
-    case GT_SINGLE_ROW_RIGHT:
-        sprite->set_square(3);
-        sprite->set_flipped(true, false);
-        break;
-    case GT_MULTI_LEFT_BOTTOM:
-        sprite->set_square(0);
-        sprite->set_flipped(false, true);
-        break;
-    case GT_MULTI_RIGHT_BOTTOM:
-        sprite->set_square(0);
-        sprite->set_flipped(true, true);
-        break;
-    case GT_MULTI_MIDDLE_BOTTOM:
-        sprite->set_square(1);
-        sprite->set_flipped(false, true);
-        break;
-    case GT_MULTI_LEFT_TOP:
-        sprite->set_square(0);
-        break;
-    case GT_MULTI_RIGHT_TOP:
-        sprite->set_square(0);
-        sprite->set_flipped(true, false);
-        break;
-    case GT_MULTI_MIDDLE_TOP:
-        sprite->set_square(1);
-        break;
-    case GT_MULTI_LEFT:
-        sprite->set_square(6);
-        break;
-    case GT_MULTI_RIGHT:
-        sprite->set_square(6);
-        sprite->set_flipped(true, false);
-        break;
-    case GT_CORNER_TOP_LEFT:
-        sprite->set_square(5);
-        break;
-    case GT_CORNER_TOP_RIGHT:
-        sprite->set_square(5);
-        sprite->set_flipped(true, false);
-        break;
-    case GT_CORNER_BOTTOM_LEFT:
-        sprite->set_square(5);
-        sprite->set_flipped(false, true);
-        break;
-    case GT_CORNER_BOTTOM_RIGHT:
-        sprite->set_square(5);
-        sprite->set_flipped(true, true);
-        break;
-    default:
-        throw std::runtime_error("Invalid grass tile type " + grass_tile_type);
-    }
-    sprite->set_position({ pos_x, pos_y });
-    tile->serializable_entity_type_ += grass_tile_type;
-    return tile;
-}
-
-Entity* EntityManager::create_background(const std::string& sprite_path, int width, int height)
-{
-    int entity_num = create_empty_entity("background", EntityType_t::ET_SPRITE_ONLY, SerializedEntityType_t::SET_MAX);
-    Entity* bg = all_entities_[entity_num].get();
-    SpriteComponentPtr_t sprite(new SpriteComponent_t(
-        sprite_path, sf::IntRect({ 0, 0 }, { width, height }),
-        { 1 }, { 0 }, 0));
-    bg->sprite_ = std::move(sprite);
-    std::cout << "Background created as entity number " << entity_num << '\n';
-    return bg;
-}
-
-Entity* EntityManager::create_physical_box(float hitbox_width, float hitbox_height, float pos_x, float pos_y)
-{
-    int entity_num = create_empty_entity("physics", EntityType_t::ET_PHYSICS_ONLY, SerializedEntityType_t::SET_MAX);
-    Entity* phys = all_entities_[entity_num].get();
-    PhysicsComponentPtr_t physics(new PhysicsComponent_t(
-        PhysicsManager::world_id, phys, false, hitbox_width, hitbox_height, pos_x, pos_y
-    ));
-    phys->physics_ = std::move(physics);
-    return phys;
-}
-
-Entity* EntityManager::create_baddie_one(bool enable_physics, float pos_x, float pos_y)
-{
-    int entity_num = create_empty_entity("baddie1", EntityType_t::ET_CHARACTER, SerializedEntityType_t::SET_ALIEN_PURPLE);
-    Entity* alien = all_entities_[entity_num].get();
-    //this is kinda hacky, but im running out of time
-    if (enable_physics) {
-        PhysicsComponentPtr_t physics(new PhysicsComponent_t(
-            PhysicsManager::world_id, alien, true, 20, 32, pos_x, pos_y, 1.0f, 0.0f
-        ));
-        alien->physics_ = std::move(physics);
-    }
-    SpriteComponentPtr_t sprite(new SpriteComponent_t(
-        "evilalien.png", sf::IntRect({ 0, 0 }, { 20, 32 }),
-        { 6 }, { 100 }, 2));
-    sprite->set_position({ pos_x, pos_y });
-    alien->sprite_ = std::move(sprite);
-
-    std::cout << "Alien character created as entity number " << entity_num << '\n';
-
-    return alien;
-}
+Level* EntityManager::current_level;
+int16_t EntityManager::num_lives;
+int16_t EntityManager::score;
+int16_t EntityManager::num_keys;
 
 void EntityManager::queue_remove(int entity_num)
 {
@@ -237,6 +53,7 @@ Entity* EntityManager::get_entity(float pos_x, float pos_y, int ignore)
 void EntityManager::remove_marked()
 {
     for (auto it : remove_entities_) {
+        PhysicsManager::remove_movement(all_entities_[it].get());
         all_entities_[it].reset();
     }
     remove_entities_.clear();
@@ -248,6 +65,7 @@ void EntityManager::remove_all()
         it.reset();
     }
     all_entities_.clear();
+    remove_entities_.clear();
 }
 
 uint32_t EntityManager::get_num_active_entities()
@@ -283,6 +101,9 @@ void EntityManager::draw(sf::RenderWindow& window)
 
 void EntityManager::update(uint64_t time) {
     for (auto& it : all_entities_) {
+        if (!it) {
+            continue;
+        }
         it->update(time);
     }
 }

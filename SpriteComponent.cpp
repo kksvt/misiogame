@@ -102,3 +102,8 @@ void SpriteComponent_t::set_flipped(bool flipped_x, bool flipped_y)
 	flipped_x_ = flipped_x;
 	flipped_y_ = flipped_y;
 }
+
+void SpriteComponent_t::set_animation_speed(const std::initializer_list<uint8_t>& animation_speed)
+{
+	animation_speed_ = animation_speed;
+}

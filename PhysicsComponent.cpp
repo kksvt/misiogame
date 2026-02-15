@@ -2,15 +2,15 @@
 #include "Entity.h"
 
 PhysicsComponent_t::PhysicsComponent_t(
-	const b2WorldId& world_id, Entity* ent,
-    bool is_dynamic, float width, float height, 
-	float pos_x, float pos_y, float density, float friction) : last_moved_(0)
+    const b2WorldId& world_id, Entity* ent,
+    bool is_dynamic, float width, float height,
+    float pos_x, float pos_y, bool enable_events, float density, float friction) : ground_contacts_(0)
 {
     half_width_ = width / 2.f;
     half_height_ = height / 2.f;
 
     body_def_ = b2DefaultBodyDef();
-    body_def_.type = is_dynamic ? b2_dynamicBody : b2_staticBody;
+    body_def_.type = is_dynamic ? b2_dynamicBody : b2_kinematicBody; //b2_staticBody;
     body_def_.position = { 
         (pos_x + half_width_) * PhysicsManager::meters_per_pixel, 
         (pos_y + half_height_) * PhysicsManager::meters_per_pixel
@@ -30,7 +30,12 @@ PhysicsComponent_t::PhysicsComponent_t(
     body_shape_def_.density = density;
     body_shape_def_.material.friction = friction;
 
-    b2CreatePolygonShape(body_id_, &body_shape_def_, &body_polygon_);
+    if (enable_events) {
+        body_shape_def_.enableContactEvents = true;
+        body_shape_def_.enableSensorEvents = true;
+    }
+
+    body_shape_id_ = b2CreatePolygonShape(body_id_, &body_shape_def_, &body_polygon_);
 }
 
 PhysicsComponent_t::~PhysicsComponent_t()
@@ -65,14 +70,17 @@ void PhysicsComponent_t::apply_force(const sf::Vector2f& force)
     );
 }
 
-void PhysicsComponent_t::move(const sf::Vector2f& dir, float run_speed, float jump_speed)
+void PhysicsComponent_t::move(const sf::Vector2f& dir/*, float run_speed, float jump_speed*/)
 {
     auto v = b2Body_GetLinearVelocity(body_id_);
    
-    auto target_v = b2Vec2{ dir.x * run_speed, v.y };
+    auto target_v = b2Vec2{ dir.x /** run_speed*/, v.y };
 
-    if (dir.y && !v.y) {
-        target_v.y = dir.y * jump_speed;
+    if (dir.y) {
+        target_v.y = dir.y /** jump_speed*/;
+        if (dir.y < 0.f) {
+            decrease_contacts();
+        }
     }
 
     b2Body_SetLinearVelocity(body_id_, target_v);
